@@ -7,14 +7,14 @@ import { allNotes } from '../.contentlayer/generated/Note/_index.mjs'
 async function generate() {
   const feed = new RSS({
     title: 'haeya',
-    site_url: 'https://haeya.dev',
-    feed_url: 'https://haeya.dev/feed.xml',
+    site_url: 'https://haeya.github.io',
+    feed_url: 'https://haeya.github.io/feed.xml',
   })
 
   allBlogs.map(post => {
     feed.item({
       title: post.title,
-      url: `https://haeya.dev/blog/${post.slug}`,
+      url: `https://haeya.github.io/blog/${post.slug}`,
       date: post.date,
       description: post.description,
     })
@@ -23,7 +23,7 @@ async function generate() {
   allNotes.map(note => {
     feed.item({
       title: note.title,
-      url: `https://haeya.dev/${note.url_path}`,
+      url: `https://haeya.github.io/${note.url_path}`,
       date: note.date,
     })
   })
