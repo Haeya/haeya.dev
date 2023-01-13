@@ -1,7 +1,7 @@
 import metadata from './data/metadata'
 
 const SEO = {
-  titleTemplate: '%s | haeya.dev',
+  titleTemplate: '%s | haeya.github.io',
   defaultTitle: metadata.meta.title,
   description: metadata.meta.description,
   canonical: metadata.meta.url,
@@ -15,7 +15,7 @@ const SEO = {
         url: `${metadata.meta.url}/home/main.png`,
         width: 1280,
         height: 720,
-        alt: `haeya.dev`,
+        alt: `haeya.github.io`,
       },
     ],
   },

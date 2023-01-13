@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://haeya.dev/sitemap.xml
+Sitemap: https://haeya.github.io/sitemap.xml
