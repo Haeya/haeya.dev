@@ -10,11 +10,11 @@ function Projectspage() {
     <Container>
       <NextSeo
         title="Projects"
-        description="프로젝트"
+        description="참여했던 프로젝트들을 정리하는 곳"
         canonical={`${metadata.meta.url}/projects`}
         openGraph={{ url: `${metadata.meta.url}/projects` }}
       />
-      <Title title="Projects" des={`프로젝트`} />
+      <Title title="Projects" des={`참여했던 프로젝트들을 정리하는 곳`} />
       <ProjectCards projects={projects} />
     </Container>
   )

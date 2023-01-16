@@ -6,7 +6,7 @@ const AboutProfile = () => {
   return (
     <AboutProfileContainer>
       <Image
-        src="/about/about.jpg"
+        src="/about/about.jpeg"
         className="round-image"
         alt="haeya"
         width={300}
@@ -14,20 +14,17 @@ const AboutProfile = () => {
         objectFit="cover"
       />
       <ProfileText>
-        새로운 경험을 좋아하는 개발자입니다.
+        Product 관점에서 서비스를 개발하고 싶어하는 백엔드 개발자 입니다.
         <br />
         <br />
-        최신 트렌드와 명료한 코드를 작성하는 것에 관심이 많으며, 정보를 공유하는 것에 기쁨을
-        느낍니다.
+        개발하기 편한 방향만 쫓는 것이 아닌 비즈니스 관점에서 성장이 되는 방식을 선호합니다.
         <br />
-        보안을 했고, 요즘은 프론트엔드에 힘을 쏟고 있습니다.
+        계속 서비스의 문제점과 로직의 효율을 찾습니다.
         <br />
         <br />
-        여행을 좋아합니다. 현재까지 다녀온 나라
+        찾아낸 것들을 공유하고 발전시키는데 보람을 느낍니다.
         <br />
         <ProfileTextSub>
-          Denmark, Turkey, Finland, Sweden, Norway, Italy, United Kingdom, Czechia, Hungary,
-          Austria, Switzerland, France, Japan, Philippines, Taiwan
         </ProfileTextSub>
         <br />
         <br />

@@ -2,11 +2,14 @@ import RecentPost from '../components/RecentPost'
 import { allBlogs } from 'contentlayer/generated'
 import { InferGetStaticPropsType } from 'next'
 import Container from '../components/Container'
+import AboutProfile from "../components/AboutProfile";
+
 
 function Homepage({ posts }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <Container>
       <>
+        <AboutProfile />
         {posts.length >= 5 ? (
           <RecentPost posts={posts.slice(0, 5)} />
         ) : (
