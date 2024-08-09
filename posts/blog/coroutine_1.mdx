@@ -1,0 +1,73 @@
+---
+title: 코틀린 코루틴을 배워야 하는 이유
+date: 2024-08-09
+description: 코틀린 코루틴(마르친 모스카와, 2024) 1장 요약
+thumbnailUrl: /posts/thumbnail/img.png
+tags: ['코틀린, 코루틴, Kotlin, Coroutine']
+---
+
+## Intro
+
+카카오에서 서버 개발자로 일하고 계신 신성열님(Tomo)이 번역하신 마르친 모스카와의 코틀린 코루틴 책을 읽고 정리한 내용입니다.
+책의 1장 코틀린 코루틴을 배워야 하는 이유에 대해 요약하였습니다.
+
+## 백엔드에서 코루틴 사용
+
+백엔드에서 코루틴을 사용하는 가장 큰 장점 = **‘간결성’**
+
+스레드를 코루틴으로 바꾸는 대부분의 환경에서는 **‘suspend’** 제어자를 추가
+
+```kotlin
+suspend fun getArticle(
+	articleKey: String,
+	lang: Language
+): ArticleJson? {
+	return articleRepository.getArticle(articleKey, lang)?.let {
+		toArticleJson(it)
+}
+
+suspend fun getAllArticles(
+	userUuid: String?,
+	lang: Language
+): List<ArticleJson> = coroutineScope {
+	val user = async { userRepository.findUserByUUID(userUuid) }
+	val articles = articleRepository.getArticles(lang)
+	articles
+		.filter{ hasAccess(user.await(), it) }
+		.map{ toArticleJson(it) }
+}
+```
+
+코루틴을 도입하면 동시성을 쉽게 구현 / 동시성 테스트 가능 / 코루틴 취소 가능
+
+위 특징들을 제외하면 코루틴을 사용하는 가장 중요한 이유 = 스레드를 사용하는 비용이 크기 때문
+
+스레드는 명시적으로 생성해야 하고, 유지되어야 하며, 스레드를 위한 메모리 또한 할당되어야 함
+
+10만개의 스레드를 만들고 1초 동안 재운 후 점 출력 = OutOfMemoryError Exception 발생
+
+```kotlin
+fun main() {
+	repeat(100_000) {
+		thread {
+			Thread.sleep(1000L)
+			print(".")
+		}
+	}
+}
+```
+
+스레드 대신 코루틴을 사용, 스레드를 재우기 않고 코루틴을 중단시킴 = 1초 기다린 뒤 모든 점 출력됨
+
+```kotlin
+fun main() = runBlocking {
+	repeat(100_000) {
+		launch {
+			delay(1000L)
+			print(".")
+		}
+	}
+}
+```
+
+코루틴은 스레드와 비교가 되지 않을 정도로 리소스가 적고, 이를 인지할 수 없을 정도.
