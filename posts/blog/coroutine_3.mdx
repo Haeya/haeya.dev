@@ -1,0 +1,313 @@
+---
+title: 중단은 어떻게 작동할까?
+date: 2024-08-11
+description: 코틀린 코루틴(마르친 모스카와, 2024) 3장 요약
+thumbnailUrl: /posts/thumbnail/coroutine.png
+tags: ['코틀린, 코루틴, Kotlin, Coroutine']
+---
+
+## Intro
+
+카카오에서 서버 개발자로 일하고 계신 신성열님(Tomo)이 번역하신 마르친 모스카와의 코틀린 코루틴 책을 읽고 정리한 내용입니다.
+책의 3장 중단은 어떻게 작동할까?에 대해 요약하였습니다.
+
+- 코루틴 = 중단되었을 때 Continuation 객체를 반환, 이를 이용하면 중단된 곳에서 다시 실행 가능
+- 스레드 = 저장이 불가능하고 멈추는 것만 가능
+
+## 재개
+
+중단 함수 = 코루틴을 중단할 수 있는 함수이기 때문에 반드시 코루틴에 의해 호출되어야 한다.
+
+```kotlin
+suspend fun main() {
+	println("Before")
+
+	println("After")
+}
+// Before
+// After
+```
+
+위 main 함수에서 Before와 After 사이에서 중단하려면?
+
+```kotlin
+suspend fun main() {
+	println("Before")
+
+	suspendCoroutine<Unit> { }
+
+	println("After")
+}
+// Before
+```
+
+중단되기 전에 실행하려면?
+
+```kotlin
+suspend fun main() {
+	println("Before")
+
+	suspendCoroutine<Unit> { continuation ->
+		println("Before too")
+	}
+
+	println("After")
+}
+// Before
+// Before too
+```
+
+다른 함수를 곧바로 호출하는 다른 함수 = let, apply, useLines처럼 `suspendCoroutine` 함수는 중단되기 전에 `continuation` 객체를 사용할 수 있음
+
+`continuation` 객체를 이용해서 코루틴을 중단 후 곧바로 재개 하려면?
+
+```kotlin
+suspend fun main() {
+	println("Before")
+
+	suspendCoroutine<Unit> { continuation ->
+		continuation.resume(Unit)
+	}
+
+	println("After")
+}
+// Before
+// After
+```
+
+> Kotlin 1.3 이후로 Continuation 클래스 형태가 달라져서 resume, resumeWithException이 사라지고 Result를 반환하는 `resumeWith` 함수 하나로 통합됨
+>
+
+suspendCoroutine에서 잠깐 정지된 뒤 다른 스레드를 실행 하려면?
+
+```kotlin
+suspend fun main() {
+	println("Before")
+
+	suspendCoroutine<Unit> { continuation ->
+		thread {
+			println("Suspended")
+			Thread.sleep(1000)
+			continuation.resume(Unit)
+			println("Resumed")
+		}
+	}
+
+	println("After")
+}
+// Before
+// Suspended
+// (1초 후)
+// After
+// Resumed
+```
+
+잠깐 정지시켰다 재개하는 로직을 함수로 변환하면?
+
+```kotlin
+fun continueAfterSecond(continuation: Continuation<Unit>) {
+	thread {
+			Thread.sleep(1000)
+			continuation.resume(Unit)
+		}
+}
+
+suspend fun main() {
+	println("Before")
+
+	suspendCoroutine<Unit> { continuation ->
+		continueAfterSecond(continuation)
+	}
+
+	println("After")
+}
+// Before
+// (1초 후)
+// After
+```
+
+스레드를 생성하는 비용이 많이 들어 비효율 → JVM이 제공하는 ScheduledExecutorService를 사용, 알람 시계를 구현
+
+```kotlin
+private val executor =
+	Executors.newSingleThreadScheduledExecutor {
+		Thread(it, "scheduler").apply { isDaemon = true }
+	}
+
+suspend fun delay(timeMillis: Long): Unit =
+	suspendCoroutine { cont ->
+		executor.schedule({
+			cont.resume(Unit)
+		}, timeMillis, TimeUnit.MILLISECONDS)
+	}
+
+suspend fun main() {
+	println("Before")
+
+	delay(1000)
+
+	println("After")
+}
+// Before
+// (1초 후)
+// After
+```
+
+물론 `executor` 는 스레드를 사용하긴 하지만 `delay` 함수를 사용하는 모든 코루틴의 전용 스레드가 된다. (대기할 때마다 하나의 스레드를 블로킹하는 방법보다 훨씬 낫다)
+
+## 값으로 재개하기
+
+`resume` 함수에 `Unit`을 인자로 넣는 이유 + `suspendCoroutine`의 타입 인자로 `Unit`을 사용하는 이유는?
+
+<aside>
+    💡 Unit은 함수의 리턴 타입이며, Continuation의 제네릭 타입 인자이기도 함
+
+</aside>
+
+```kotlin
+val ret: Unit =
+	suspendCoroutine<Unit> { cont: Continuation<Unit> ->
+		cont.resume(Unit)
+	}
+```
+
+`suspendCoroutine` 를 호출할 때 컨티뉴에이션 객체로 반환될 값의 타입 지정 가능
+
+```kotlin
+suspend fun main() {
+	val i: Int = suspendCoroutine<Int> { cont ->
+		cont.resume(42)
+	}
+	println(i) // 42
+
+	val str: String = suspendCoroutine<String> { cont ->
+		cont.resume("text")
+	}
+	println(str) // text
+
+	val b: Boolean = suspendCoroutine<Boolean> { cont ->
+		cont.resume(true)
+	}
+	println(b) // true
+}
+```
+
+코루틴에서는 값으로 재개하는 것이 자연스럽다.
+
+스레드는 특정 데이터가 필요한 지점까지 비즈니스 로직을 수행하고 이후 네트워크 라이브러리를 통해 데이터를 요청.
+
+코루린이 없다면 스레드는 응답을 기다리고 있어야함.
+
+코루틴이 있으면 중단함과 동시에 “데이터를 받고 나면, 받은 데이터를 resume 함수를 통해 보내줘” 라고 컨티뉴에이션 객체를 통해 라이브러리에 전달. 그러면 스레드는 다른 일을 할 수 있다. + 데이터가 도착하면 코루틴이 중단된 시점에서 재개됨
+
+### 만약 API가 데이터를 넘겨주는 대신 문제가 발생하면 어떻게 해야하나?
+
+<aside>
+    💡 데이터를 반환할 수 없으므로 코루틴이 중단된 곳에서 예외를 발생시켜야 함
+
+</aside>
+
+## 예외로 재개하기
+
+```kotlin
+class MyException : Throwable("Just an exception")
+
+suspend fun main() {
+	try {
+		suspendCoroutine<Unit> { cont ->
+			cont.resumeWithException(MyException())
+		}
+	} catch (e: MyException) {
+		println("Caught!")
+	}
+}
+// Caught!
+```
+
+네트워크 관련 예외 발생시에는?
+
+```kotlin
+suspend fun requestUser(): User {
+	return suspendCancellableCoroutine<User> { cont ->
+		requestUser { resp ->
+			if (resp.isSuccessful) {
+				cont.resume(resp.data)
+			} else {
+				val e = ApiException(
+					resp.conde,
+					resp.message
+				)
+				cont.resumeWithException(e)
+			}
+		}
+	}
+}
+
+suspend fun requestNews(): News {
+	return suspendCancellableCoroutine<News> { cont ->
+		requestNews(
+			onSuccess = { news -> cont.resume(news) },
+			onError = { e -> cont.resumeWithException(e) }
+		)
+	}
+}
+```
+
+## 함수가 아닌 코루틴을 중단시킨다
+
+중단 함수는 코루틴이 아니고, 단지 코루틴을 중단할 수 있는 함수
+
+변수에 컨티뉴에이션 객체를 저장하고, 함수를 호출한 다음 재개하는 경우
+
+```kotlin
+// 이렇게 구현하면 안 됨
+var continuation: Continuation<Unit>? = null
+
+suspend fun suspendAndSetContinuation() {
+	suspendCoroutine<Unit> { cont ->
+		continuation = cont
+	}
+}
+
+suspend fun main() {
+	println("Before")
+
+	suspendAndSetContinuation()
+	continuation?.resume(Unit)
+
+	println("After")
+}
+// Before
+```
+
+위 코드는 의도와 달리 종료되지 않는다. (resume이 호출 X)
+
+다른 스레드나 다른 코루틴으로 재개하지 않으면 해당 함수는 실행된 상태로 유지
+
+1초 뒤 다른 코루틴이 재개하는 상황
+
+```kotlin
+// 메모리 누수가 발생할 수 있어 이렇게 구현하면 안 됨
+var continuation: Continuation<Unit>? = null
+
+suspend fun suspendAndSetContinuation() {
+	suspendCoroutine<Unit> { cont ->
+		continuation = cont
+	}
+}
+
+suspend fun main() = coroutineScope {
+	println("Before")
+
+	launch {
+		delay(1000)
+		continuation?.resume(Unit)
+	}
+
+	suspendAndSetContinuation()
+	println("After")
+}
+// Before
+// (1초 후)
+// After
+```
