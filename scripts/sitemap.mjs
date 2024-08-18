@@ -27,7 +27,7 @@ async function generate() {
 
             return `
               <url>
-                  <loc>${`https://haeya.github.io${path}`}</loc>
+                  <loc>${`https://haeya.dev${path}`}</loc>
               </url>
             `
           })

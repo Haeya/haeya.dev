@@ -1,6 +1,6 @@
 const metadata = {
   meta: {
-    url: 'https://haeya.github.io',
+    url: 'https://haeya.dev',
     title: 'haeya',
   },
   author: 'haeya',
